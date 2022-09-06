@@ -1,0 +1,37 @@
+name: "deploy matrix generator"
+description: "generate a deploy matrix"
+
+runs:
+  using: "composite"
+  steps:
+    - name: include
+      id: include
+      run: >
+        if ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}; then
+         echo '::set-output name=include::[{"env": "prod", "account": 941071384133}]';
+        elif ${{ github.ref == 'refs/heads/env/nonprod' || startsWith(github.ref, 'refs/heads/integration') }}; then
+         echo '::set-output name=include::[{"env": "nonprod", "account": 247721768464}]';
+        else
+         echo '::set-output name=include::[]';
+        fi;
+      shell: bash
+    - name: exclude
+      id: exclude
+      run: >
+        if ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}; then
+          echo '::set-output name=exclude::[{ "env": "nonprod" }]';
+        elif ${{ github.ref == 'refs/heads/env/nonprod' || startsWith(github.ref, 'refs/heads/integration') }}; then
+          echo '::set-output name=exclude::[{ "env": "prod" }]';
+        else
+          echo '::set-output name=exclude::[{ "env": "prod" }, { "env": "nonprod" }]';
+        fi;
+      shell: bash
+    - name: matrix
+      id: matrix
+      run: |
+        echo '::set-output name=matrix::{"env":["nonprod","prod"],"region":["us-west-2","us-east-1"],"exclude":${{steps.exclude.outputs.exclude}},"include":${{steps.include.outputs.include}}}'
+      shell: bash
+outputs:
+  deploy-matrix:
+    description: "commonly used deploy matrix "
+    value: ${{ steps.matrix.outputs.matrix}}

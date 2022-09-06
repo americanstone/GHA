@@ -1,0 +1,43 @@
+name: "action to report failure or success"
+description: "wrap two actions into one"
+inputs:
+  status:
+    required: true
+    description: the job or step statue report to slack. options are failure, cancelled or success
+  slack-webhook-url:
+    required: true
+    description: slack webhook url
+  slack-channel:
+    required: true
+    description: the slack channel report to
+  steps:
+    required: false
+    description: the previous steps 
+  env:
+    required: false
+    description: prod or nonprod
+  region:
+    required: false
+    description: us-east-1 or us-west-2
+
+runs:
+  using: "composite"
+  steps:
+    - name: Notify Failure Slack Room
+      if: ${{ inputs.status == 'failure' || inputs.status ==  'cancelled'}}
+      uses: act10ns/slack@v1.6.0
+      with:
+        webhook-url: ${{ inputs.slack-webhook-url }}
+        status: ${{ inputs.status }}
+        channel: ${{ inputs.slack-channel }}
+        steps: ${{ toJson(steps) }}
+        message: Failure while releasing to ${{ inputs.env }} ${{ inputs.region }}
+
+    - name: Notify Success Slack Room
+      if: ${{ inputs.status == 'success' }}
+      uses: act10ns/slack@v1.6.0
+      with:
+        webhook-url: ${{ inputs.slack-webhook-url }}
+        status: ${{ inputs.status }}
+        channel: ${{ inputs.slack-channel }}
+        message: Released in ${{ inputs.env }} ${{ inputs.region }} successfully
